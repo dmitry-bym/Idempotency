@@ -133,11 +133,45 @@ app.MapPost("/orders", async (Order order) =>
 .WithIdempotency("orders");
 ```
 
+#### MVC Controllers
+
+```csharp
+using Idempotency.AspNetCore;
+
+[ApiController]
+[Route("api/[controller]")]
+public class OrdersController : ControllerBase
+{
+    // With automatic scope (uses request path)
+    [HttpPost]
+    [Idempotent]
+    public IActionResult CreateOrder([FromBody] Order order)
+    {
+        // Process order
+        return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
+    }
+
+    // With custom scope
+    [HttpPut("{id}")]
+    [Idempotent(Scope = "orders")]
+    public IActionResult UpdateOrder(string id, [FromBody] Order order)
+    {
+        // Update order
+        return Ok(order);
+    }
+
+    [HttpGet("{id}")]
+    public IActionResult GetOrder(string id)
+    {
+        // Not idempotent - no attribute needed
+        return Ok(new Order());
+    }
+}
+```
+
 ## Storage Options
 
 ### In-Memory Store
-
-Best for development and testing. Data is lost when the application restarts.
 
 ```csharp
 builder.Services
@@ -145,19 +179,7 @@ builder.Services
     .UseInMemoryIdempotencyStore();
 ```
 
-**Pros:**
-- No external dependencies
-- Fast
-- Simple setup
-
-**Cons:**
-- Data lost on restart
-- Not suitable for distributed systems
-- Limited to single instance
-
 ### MongoDB Store
-
-Recommended for production environments.
 
 ```csharp
 using Idempotency.Store.MongoDb;
@@ -178,84 +200,10 @@ builder.Services
         });
 ```
 
-**Pros:**
-- Persistent storage
-- Works with distributed systems
-- Automatic TTL (time-to-live) cleanup
-- Production-ready
-
-**Cons:**
-- Requires MongoDB instance
-- Additional infrastructure
-
 **MongoDB Configuration:**
 - Records are automatically indexed with TTL
 - Old records are automatically cleaned up based on `TimeToLive` setting
 - Collection is created automatically if it doesn't exist
-
-### Custom Store Implementation
-
-Implement your own storage backend by implementing the `IIdempotencyStore` interface:
-
-```csharp
-using Idempotency.Core.Abstractions;
-using Idempotency.Core.Models;
-
-public class CustomIdempotencyStore : IIdempotencyStore
-{
-    public async Task<IdempotencyClaim> ClaimAsync(
-        IdempotencyKey key,
-        RequestFingerprint fingerprint,
-        CancellationToken ct = default)
-    {
-        // Try to claim ownership of this idempotency key
-        // Return information about existing record if found
-        // Key components: key.ActorId, key.Scope, key.Key
-        // Fingerprint: fingerprint.Hash (for detecting payload conflicts)
-        // Must be atomic
-
-        // Example logic:
-        // 1. Try to insert new record with status InProgress
-        // 2. If insert succeeds, return IsOwner=true
-        // 3. If record exists, return existing record data with IsOwner=false
-    }
-
-    public async Task CompleteAsync(
-        IdempotencyKey key,
-        IdempotencyData data,
-        CancellationToken ct = default)
-    {
-        // Mark the request as completed and store the response data
-        // data.Data contains response information (status code, headers, body)
-        // Must be atomic
-    }
-
-    public async Task ReleaseAsync(
-        IdempotencyKey key,
-        RequestFingerprint fingerprint,
-        CancellationToken ct = default)
-    {
-        // Release the claim if request processing failed
-        // Only release if:
-        // - Status is InProgress
-        // - Fingerprint matches (same request)
-        // Must be atomic
-    }
-}
-```
-
-Register your custom store:
-
-```csharp
-builder.Services.AddSingleton<IIdempotencyStore, CustomIdempotencyStore>();
-```
-
-**Key Concepts:**
-
-- **IdempotencyKey**: Composite key consisting of `ActorId` (who), `Scope` (what), and `Key` (unique identifier)
-- **RequestFingerprint**: Hash of the request payload to detect conflicts
-- **IdempotencyClaim**: Result of claiming a key, indicates ownership and existing data
-- **IdempotencyData**: Response data to store (status code, headers, body)
 
 ## How It Works
 
@@ -271,6 +219,25 @@ builder.Services.AddSingleton<IIdempotencyStore, CustomIdempotencyStore>();
    - **In progress**: Another identical request is being processed → return 409 Conflict
 7. **Response stored** (if successful and matches storage criteria)
 8. **Claim released** (if request processing failed)
+
+## Idempotency Strategy
+
+This library implements an **at-most-once** processing guarantee:
+
+- **Successful requests** are stored and replayed on subsequent requests with the same idempotency key
+- **Failed requests** release their claim, allowing retries
+- **No automatic retries** - The library does not retry failed requests
+
+### Retry Handling
+
+If you need retry logic for failed requests, combine this library with a resilience library like [Polly](https://github.com/App-vNext/Polly)
+
+**Important Notes:**
+
+- Each retry attempt should use the **same idempotency key** to ensure at-most-once processing
+- The library guarantees that even with retries, the operation will only be processed once successfully
+- If a request fails and the claim is released, a retry with the same key will attempt processing again
+- Once a request succeeds, all subsequent requests with the same key return the cached response
 
 ## Advanced Configuration
 
@@ -331,7 +298,6 @@ public class CustomFingerprintFactory : IFingerprintFactory
 {
     public async Task<RequestFingerprint> CreateFingerprint(HttpContext context)
     {
-        // Example: Hash request body + specific headers
         context.Request.EnableBuffering();
         using var reader = new StreamReader(context.Request.Body, leaveOpen: true);
         var body = await reader.ReadToEndAsync();
@@ -349,17 +315,80 @@ public class CustomFingerprintFactory : IFingerprintFactory
     private string ComputeHash(string input)
     {
         // Implement your hashing logic
-        throw new NotImplementedException();
     }
 }
 
 builder.Services.AddSingleton<IFingerprintFactory, CustomFingerprintFactory>();
 ```
 
+### Custom Store Implementation
+
+Implement your own storage backend by implementing the `IIdempotencyStore` interface:
+
+```csharp
+using Idempotency.Core.Abstractions;
+using Idempotency.Core.Models;
+
+public class CustomIdempotencyStore : IIdempotencyStore
+{
+    public async Task<IdempotencyClaim> ClaimAsync(
+        IdempotencyKey key,
+        RequestFingerprint fingerprint,
+        CancellationToken ct = default)
+    {
+        // Try to claim ownership of this idempotency key
+        // Return information about existing record if found
+        // Key components: key.ActorId, key.Scope, key.Key
+        // Fingerprint: fingerprint.Hash (for detecting payload conflicts)
+
+        // Example logic:
+        // 1. Try to insert new record with status InProgress
+        // 2. If insert succeeds, return IsOwner=true
+        // 3. If record exists, return existing record data with IsOwner=false
+
+        // IMPORTANT: This operation must be atomic to prevent race conditions
+    }
+
+    public async Task CompleteAsync(
+        IdempotencyKey key,
+        IdempotencyData data,
+        CancellationToken ct = default)
+    {
+        // Mark the request as completed and store the response data
+        // data.Data contains response information (status code, headers, body)
+
+        // IMPORTANT: This operation must be atomic
+    }
+
+    public async Task ReleaseAsync(
+        IdempotencyKey key,
+        RequestFingerprint fingerprint,
+        CancellationToken ct = default)
+    {
+        // Release the claim if request processing failed
+        // Only release if:
+        // - Status is InProgress
+        // - Fingerprint matches (same request)
+
+        // IMPORTANT: This operation must be atomic
+    }
+}
+```
+
+Register your custom store:
+
+```csharp
+builder.Services.AddSingleton<IIdempotencyStore, CustomIdempotencyStore>();
+```
+
+**Key Concepts:**
+
+- **IdempotencyKey**: Composite key consisting of `ActorId` (who), `Scope` (what), and `Key` (unique identifier)
+- **RequestFingerprint**: Hash of the request payload to detect conflicts
+- **IdempotencyClaim**: Result of claiming a key, indicates ownership and existing data
+- **IdempotencyData**: Response data to store (status code, headers, body)
+- **Atomicity**: All store operations must be atomic to prevent race conditions in concurrent scenarios
+
 ## License
 
-[Add your license here]
-
-## Contributing
-
-[Add contributing guidelines here]
+This project is under MIT license.
