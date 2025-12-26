@@ -11,7 +11,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\Idempotency.AspNet\Idempotency.AspNet.csproj" />
+      <ProjectReference Include="..\..\src\Idempotency.AspNetCore\Idempotency.AspNetCore.csproj" />
       <ProjectReference Include="..\..\src\Idempotency.Store.MongoDb\Idempotency.Store.MongoDb.csproj" />
     </ItemGroup>
 

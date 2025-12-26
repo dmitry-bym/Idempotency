@@ -4,11 +4,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Idempotency.Core", "src\Ide
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Idempotency.AspNet", "src\Idempotency.AspNet\Idempotency.AspNet.csproj", "{E379A064-6E4C-4B72-B552-7ED89D09850D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Idempotency.AspNetCore", "src\Idempotency.AspNetCore\Idempotency.AspNetCore.csproj", "{E379A064-6E4C-4B72-B552-7ED89D09850D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Idempotency.Core.Tests", "tests\Idempotency.Core.Tests\Idempotency.Core.Tests.csproj", "{B9809CA3-A464-41FB-838A-9A9C0C6FB854}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Idempotency.AspNet.Tests", "tests\Idempotency.AspNet.Tests\Idempotency.AspNet.Tests.csproj", "{9D4A45BA-4B8B-4B32-8F53-D7FA8BB4437F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Idempotency.AspNetCore.Tests", "tests\Idempotency.AspNetCore.Tests\Idempotency.AspNetCore.Tests.csproj", "{9D4A45BA-4B8B-4B32-8F53-D7FA8BB4437F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DemoApi", "demo\DemoApi\DemoApi.csproj", "{336202F4-57E7-49F2-B2FD-D0E07997A4FA}"
 EndProject

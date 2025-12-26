@@ -1,6 +1,6 @@
-using Idempotency.AspNet;
-using Idempotency.AspNet.ActorIds;
-using Idempotency.AspNet.Extensions;
+using Idempotency.AspNetCore;
+using Idempotency.AspNetCore.ActorIds;
+using Idempotency.AspNetCore.Extensions;
 using Idempotency.Store.MongoDb;
 using MongoDB.Driver;
 
