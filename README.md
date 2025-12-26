@@ -41,7 +41,8 @@ builder.Services
 
 var app = builder.Build();
 
-// Add idempotency middleware
+app.UseRouting();
+// Add idempotency middleware (must be after UseRouting)
 app.UseIdempotency();
 
 // Mark endpoints as idempotent
@@ -50,7 +51,7 @@ app.MapPost("/orders", (Order order) =>
     // Your order processing logic
     return Results.Created($"/orders/{order.Id}", order);
 })
-.WithIdempotency("orders");
+.WithIdempotency();
 
 app.Run();
 ```
