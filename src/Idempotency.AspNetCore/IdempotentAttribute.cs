@@ -1,4 +1,4 @@
-﻿namespace Idempotency.AspNetCore.Middlewares;
+﻿namespace Idempotency.AspNetCore;
 
 [AttributeUsage(AttributeTargets.Method)]
 public class IdempotentAttribute : Attribute
