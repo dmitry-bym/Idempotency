@@ -1,0 +1,26 @@
+<Project>
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Authors>Dmitry Kaznacheev</Authors>
+        <Copyright>Copyright © $(Authors) $([System.DateTime]::Now.Year)</Copyright>
+        <PackageProjectUrl>https://github.com/dmitry-bym/Idempotency</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/dmitry-bym/Idempotency</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <PackageTags>idempotency;idempotent;duplicate-prevention;distributed-systems</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+    </ItemGroup>
+</Project>
+
